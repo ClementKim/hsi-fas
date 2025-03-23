@@ -14,11 +14,18 @@ def rename_dir():
         "exp6_rotated": "03",
         "exp7_rotated": "01",
         "exp8_rotated": "10",
-        "exp9_rotated": "11"
+        "exp9_rotated": "11",
+        "exp10_rotated": "",
+        "exp11_rotated": "",
+        "exp12_rotated": "",
+        "exp13_rotated": "",
+        "exp14_rotated": "",
+        "exp15_rotated": "",
+        "exp16_rotated": "",
     }
 
     os.chdir("dataset")
-    lst = [i for i in os.listdir() if "exp" in i]
+    lst = [i for i in os.listdir() if (("exp" in i) and ("(need edit)" not in i))]
 
     for i in lst:
         elems = os.listdir(i)
