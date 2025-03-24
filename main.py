@@ -68,8 +68,25 @@ def old_video_to_image():
 
                 video.release()
 
+def new_hsi_rotate():
+    lst = [i for i in os.listdir("raw-dataset") if "exp" in i and i + "_rotated" not in os.listdir("dataset")]
+
+    for source in lst:
+        source_path = os.path.join("raw-dataset", source)
+        target_path = os.path.join("dataset", source + "_rotated")
+
+        os.makedirs(target_path, exist_ok=True)
+
+        for elem in tqdm(os.listdir(source_path)):
+            image = cv2.imread(f"{source_path}/{elem}")
+            h, w = image.shape[:2]
+            cX, cY = w // 2, h // 2
+            M = cv2.getRotationMatrix2D((cX, cY), 180, 1.0)
+            image = cv2.warpAffine(image, M, (w, h))
+            cv2.imread(f"{target_path}/{elem}", image)
+
 def new_video_to_image():
-    lst = [i for i in os.listdir("raw-dataset")]
+    lst = [i for i in os.listdir("raw-dataset") if "WIN" in i and i[:-4] not in os.listdir("dataset")]
     
     for source in tqdm(lst):
         source_path = os.path.join("raw-dataset", source)
@@ -94,6 +111,7 @@ def main():
     #rename_dir()
     #old_video_to_image()
     new_video_to_image()
+    new_hsi_rotate()
 
 if __name__ == "__main__":
     main()
