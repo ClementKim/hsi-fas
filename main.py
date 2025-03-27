@@ -1,4 +1,5 @@
 import os
+import json
 import cv2
 
 from tqdm import tqdm
@@ -144,11 +145,116 @@ def new_video_to_image():
 
         video.release()
 
+def real_text_gen():
+    additional_info_dictionary = {
+        # id : [light, pose, Expression, Acc.]
+        "01" : ["Fluorescent", "Straight", "Neutral", "N/A"],
+        "02" : ["Fluorescent", "Left", "Neutral", "N/A"],
+        "03" : ["Fluorescent", "Up", "Neutral", "N/A"],
+        "04" : ["Fluorescent", "Right", "Neutral", "N/A"],
+        "05" : ["Fluorescent", "Down", "Neutral", "N/A"],
+        "06" : ["Fluorescent", "Straight", "Closed Eyes", "N/A"],
+        "07" : ["Fluorescent", "Straight", "Smile", "N/A"],
+        "08" : ["Fluorescent", "Straight", "Neutral", "Mask"],
+        "09" : ["Fluorescent", "Left", "Neutral", "Mask"],
+        "10" : ["Fluorescent", "Up", "Neutral", "Mask"],
+        "11" : ["Fluorescent", "Right", "Neutral", "Mask"],
+        "12" : ["Fluorescent", "Down", "Neutral", "Mask"],
+        "13" : ["Fluorescent", "Straight", "Neutral", "Hat"],
+        "14" : ["Fluorescent", "Left", "Neutral", "Hat"],
+        "15" : ["Fluorescent", "Up", "Neutral", "Hat"],
+        "16" : ["Fluorescent", "Right", "Neutral", "Hat"],
+        "17" : ["Fluorescent", "Down", "Neutral", "Hat"],
+        "18" : ["Fluorescent", "Straight", "Neutral", "Sunglasses"],
+        "19" : ["Fluorescent", "Left", "Neutral", "Sunglasses"],
+        "20" : ["Fluorescent", "Up", "Neutral", "Sunglasses"],
+        "21" : ["Fluorescent", "Right", "Neutral", "Sunglasses"],
+        "22" : ["Fluorescent", "Down", "Neutral", "Sunglasses"],
+        "23" : ["LED", "Straight", "Neutral", "N/A"],
+        "24" : ["LED", "Left", "Neutral", "N/A"],
+        "25" : ["LED", "Up", "Neutral", "N/A"],
+        "26" : ["LED", "Right", "Neutral", "N/A"],
+        "27" : ["LED", "Down", "Neutral", "N/A"],
+        "28" : ["LED", "Straight", "Closed Eyes", "N/A"],
+        "29" : ["LED", "Straight", "Smile", "N/A"],
+        "30" : ["LED", "Straight", "Neutral", "Mask"],
+        "31" : ["LED", "Left", "Neutral", "Mask"],
+        "32" : ["LED", "Up", "Neutral", "Mask"],
+        "33" : ["LED", "Right", "Neutral", "Mask"],
+        "34" : ["LED", "Down", "Neutral", "Mask"],
+        "35" : ["LED", "Straight", "Neutral", "Hat"],
+        "36" : ["LED", "Left", "Neutral", "Hat"],
+        "37" : ["LED", "Up", "Neutral", "Hat"],
+        "38" : ["LED", "Right", "Neutral", "Hat"],
+        "39" : ["LED", "Down", "Neutral", "Hat"],
+        "40" : ["LED", "Straight", "Neutral", "Sunglasses"],
+        "41" : ["LED", "Left", "Neutral", "Sunglasses"],
+        "42" : ["LED", "Up", "Neutral", "Sunglasses"],
+        "43" : ["LED", "Right", "Neutral", "Sunglasses"],
+        "44" : ["LED", "Down", "Neutral", "Sunglasses"],
+        "45" : ["LED", "Straight", "Neutral", "N/A"],
+        "46" : ["LED", "Left", "Neutral", "N/A"],
+        "47" : ["LED", "Up", "Neutral", "N/A"],
+        "48" : ["LED", "Right", "Neutral", "N/A"],
+        "49" : ["LED", "Down", "Neutral", "N/A"],
+        "50" : ["LED", "Straight", "Closed Eyes", "N/A"],
+        "51" : ["LED", "Straight", "Smile", "N/A"],
+        "52" : ["LED", "Straight", "Neutral", "Mask"],
+        "53" : ["LED", "Left", "Neutral", "Mask"],
+        "54" : ["LED", "Up", "Neutral", "Mask"],
+        "55" : ["LED", "Right", "Neutral", "Mask"],
+        "56" : ["LED", "Down", "Neutral", "Mask"],
+        "57" : ["LED", "Straight", "Neutral", "Hat"],
+        "58" : ["LED", "Left", "Neutral", "Hat"],
+        "59" : ["LED", "Up", "Neutral", "Hat"],
+        "60" : ["LED", "Right", "Neutral", "Hat"],
+        "61" : ["LED", "Down", "Neutral", "Hat"],
+        "62" : ["LED", "Straight", "Neutral", "Sunglasses"],
+        "63" : ["LED", "Left", "Neutral", "Sunglasses"],
+        "64" : ["LED", "Up", "Neutral", "Sunglasses"],
+        "65" : ["LED", "Right", "Neutral", "Sunglasses"],
+        "66" : ["LED", "Down", "Neutral", "Sunglasses"],
+    }
+    
+    os.makedirs("dataset/text/real", exist_ok=True)
+
+    target_list = [i[-2:] for i in os.listdir("dataset/hsi") if i not in os.listdir("dataset/text/real")]
+    target_list.sort()
+
+    assert all([len(os.listdir(f"dataset/rgb/{i}")) == 66 for i in os.listdir("dataset/rgb")]), "run this function later"
+
+    for identification in target_list:
+        os.mkdir(f"dataset/text/real/{identification}")
+        
+        for file_order in range(1, 67):
+            file_dictionary = {
+                "id" : identification,
+                "label" : "real",
+                "RGB" : f"dataset/rgb/RGB{identification}/{identification}RGB{file_order}.jpg",
+                "HSI" : f"dataset/hsi/HSI{identification}/{identification}HSI{file_order}.bmp",
+                #"Signal" : f"dataset/signal/{identification}/", => 충분한 논의 필요
+                "Lighting" : additional_info_dictionary[file_order][0],
+                "Pose" : additional_info_dictionary[file_order][1],
+                "Expression" : additional_info_dictionary[file_dictionary][2],
+                "Accessory" : additional_info_dictionary[file_dictionary][3],
+                "Spoof Type" : "N/A"
+            }
+            with open(f"{identification}.txt", 'w', encoding = 'UTF-8') as f:
+                f.write("{")
+                for key, val in additional_info_dictionary.items():
+                    f.write(f"    {key} : {val}")
+                f.write("}")
+                f.close()
+
+
 def main():
     #new_hsi_rotate()
     #new_video_to_image()
-    rename_dir()
+    #rename_dir()
     #old_video_to_image()
+
+    ## Test this function after completing data clean
+    real_text_gen()
     
 
 if __name__ == "__main__":
