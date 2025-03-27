@@ -4,7 +4,6 @@ import cv2
 
 from tqdm import tqdm
 
-# will remove this function after the dataset is fixed
 def rename_dir():
     exp_dir = {
         "exp_rotated": "04",
@@ -232,13 +231,15 @@ def real_text_gen():
                 "label" : "real",
                 "RGB" : f"dataset/rgb/RGB{identification}/{identification}RGB{file_order}.jpg",
                 "HSI" : f"dataset/hsi/HSI{identification}/{identification}HSI{file_order}.bmp",
-                #"Signal" : f"dataset/signal/{identification}/", => 충분한 논의 필요
+                # "Signal" : f"dataset/signal/{identification}/", ## 충분한 논의 필요
                 "Lighting" : additional_info_dictionary[file_order][0],
                 "Pose" : additional_info_dictionary[file_order][1],
                 "Expression" : additional_info_dictionary[file_dictionary][2],
                 "Accessory" : additional_info_dictionary[file_dictionary][3],
                 "Spoof Type" : "N/A"
             }
+
+            # 우선 txt로 저장하는 방식을 선택했지만 json으로 변환 가능하며 dictionary 자체 저장 파일로 변환 가능함
             with open(f"{identification}.txt", 'w', encoding = 'UTF-8') as f:
                 f.write("{")
                 for key, val in additional_info_dictionary.items():
@@ -248,13 +249,12 @@ def real_text_gen():
 
 
 def main():
-    #new_hsi_rotate()
-    #new_video_to_image()
-    #rename_dir()
-    #old_video_to_image()
-
-    ## Test this function after completing data clean
-    real_text_gen()
+    # these functions will be removed after dataset build is done
+    # new_hsi_rotate() ## hsi bmp 파일 회전하는 함수
+    # new_video_to_image() ## rgb video 파일 jpg로 변환하는 함수
+    # rename_dir() ## bmp, jpg 파일 이름 변경하는 함수
+    # old_video_to_image() ## hsi video 파일 bmp 파일로 변환하는 함수
+    real_text_gen() ## text 데이터를 생성하는 함수, Test this function after completing data clean
     
 
 if __name__ == "__main__":
