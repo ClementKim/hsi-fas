@@ -28,6 +28,12 @@ def rename_dir():
         "exp18_rotated": "19",
         "exp19_rotated": "21",
         "exp20_rotated": "22",
+        "exp22_rotated": "26",
+        "exp23_rotated": "24",
+        "exp24_rotated": "25",
+        "exp25_rotated": "23",
+        "exp26_rotated": "27",
+        "exp27_rotated": "28",
     }
 
     rgb_dir = {
@@ -51,9 +57,15 @@ def rename_dir():
         "WIN_20250324_15_25_20_Pro": "19",
         "WIN_20250325_14_32_12_Pro": "21",
         "WIN_20250326_16_07_56_Pro": "22",
+        "WIN_20250330_14_03_59_Pro": "26",
+        "WIN_20250330_14_14_26_Pro": "24",
+        "WIN_20250330_14_24_06_Pro": "25",
+        "WIN_20250330_15_58_59_Pro": "23",
+        "WIN_20250330_16_09_47_Pro": "27",
+        "WIN_20250331_11_17_44_Pro": "28",
     }
 
-    lst = [i for i in os.listdir("dataset") if (("exp" in i) and (f"{exp_dir[i]}HSI" not in os.listdir(f"dataset/{i}")[0])) or (("WIN" in i) and (f"RGB{rgb_dir[i]}" not in os.listdir("dataset/{i}")[0]))]
+    lst = [i for i in os.listdir("dataset") if (("exp" in i) and (f"{exp_dir[i]}HSI" not in os.listdir(f"dataset/{i}")[0])) or (("WIN" in i) and (f"RGB{rgb_dir[i]}" not in os.listdir(f"dataset/{i}")[0]))]
 
     for i in lst:
         if ("exp" in i):
@@ -136,8 +148,8 @@ def new_video_to_image():
 
         count = 1
         while success:
-            if not (count % 3):
-                cv2.imwrite(f"{target_path}/{source[:-4]}_{count}.jpg", image)
+            if not (count % 6):
+                cv2.imwrite(f"{target_path}/{source[:-4]}_{count // 6}.jpg", image)
 
             success, image = video.read()
             count += 1
@@ -250,11 +262,11 @@ def real_text_gen():
 
 def main():
     # these functions will be removed after dataset build is done
-    # new_hsi_rotate() ## hsi bmp 파일 회전하는 함수
-    # new_video_to_image() ## rgb video 파일 jpg로 변환하는 함수
-    # rename_dir() ## bmp, jpg 파일 이름 변경하는 함수
+    new_hsi_rotate() ## hsi bmp 파일 회전하는 함수
+    new_video_to_image() ## rgb video 파일 jpg로 변환하는 함수
+    rename_dir() ## bmp, jpg 파일 이름 변경하는 함수
     # old_video_to_image() ## hsi video 파일 bmp 파일로 변환하는 함수
-    real_text_gen() ## text 데이터를 생성하는 함수, Test this function after completing data clean
+    # real_text_gen() ## text 데이터를 생성하는 함수, Test this function after completing data clean
     
 
 if __name__ == "__main__":
