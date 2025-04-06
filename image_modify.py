@@ -42,15 +42,6 @@ def modify_image():
         "exp29": "32",
         "exp30": "29",
         "exp31": "31",
-        "exp32": "33",
-        "exp33": "34",
-        "exp34": "39",
-        "exp35": "37",
-        "exp36": "35",
-        "exp37": "38",
-        "exp38": "40",
-        "exp39": "36",
-        "exp40": "41",
     }
 
     rgb_dir = {
@@ -84,21 +75,10 @@ def modify_image():
         "WIN_20250401_14_23_24_Pro": "32",
         "WIN_20250401_17_43_34_Pro": "29",
         "WIN_20250401_17_52_23_Pro": "31",
-        "WIN_20250403_17_41_32_Pro": "33",
-        "WIN_20250403_17_50_30_Pro": "34",
-        "WIN_20250404_14_10_36_Pro": "39",
-        "WIN_20250404_14_11_59_Pro": "39",
-        "WIN_20250404_14_20_41_Pro": "37",
-        "WIN_20250404_14_30_11_Pro": "35",
-        "WIN_20250404_16_14_47_Pro": "38",
-        "WIN_20250404_16_23_53_Pro": "40",
-        "WIN_20250404_16_32_56_Pro": "36",
-        "WIN_20250404_16_41_45_Pro": "41",
-        "WIN_20250404_16_43_39_Pro": "41",
     }
 
     ## Load image files
-    video_and_exp_dir = [i for i in os.listdir("raw-dataset") if ("exp" in i and f"HSI{exp_dir[i]}" not in os.listdir("dataset")) or ("WIN" in i and f"RGB{rgb_dir[i[:-4]]}" not in os.listdir("dataset") or f"RGB{rgb_dir[i[:-4]]}-need-edit" not in os.listdir("dataset"))]
+    video_and_exp_dir = [i for i in os.listdir("raw-dataset") if f"HSI{exp_dir[i]}" not in os.listdir("dataset") or f"RGB{rgb_dir[i]}" not in os.listdir("dataset") or f"RGB{rgb_dir[i]}-need-edit" not in os.listdir("dataset")]
 
     for item in tqdm(video_and_exp_dir):
         ## hsi image인 경우
@@ -124,7 +104,7 @@ def modify_image():
         ## rgb image인 경우
         elif "WIN" in item:
             ## 디렉토리 생성
-            os.makedirs(f"dataset/RGB{rgb_dir[item[:-4]]}-need-clean", exist_ok = True)
+            os.makedirs(f"dataset/RGB{rgb_dir[item]}-need-clean", exist_ok = True)
 
             ## 비디오 파일 읽기
             video = cv2.VideoCapture(f"raw-dataset/{item}")
@@ -135,7 +115,7 @@ def modify_image():
             while success:
                 ## 6 frame 단위로 정제
                 if not (frame % 6):
-                    cv2.imwrite(f"dataset/RGB{rgb_dir[item[:-4]]}/{rgb_dir[item[:-4]]}RGB{frame // 6}.jpg", image)
+                    cv2.imwrite(f"dataset/RGB{rgb_dir[item]}/{rgb_dir[item]}RGB{frame // 6}.jpg", image)
 
                 success, image = video.read()
                 frame += 1
@@ -208,10 +188,3 @@ def rgb_rename_crop_resize():
 
 def text_file_generate():
     pass
-
-def main():
-    modify_image()
-    rgb_rename_crop_resize()
-
-if __name__ == "__main__":
-    main()
