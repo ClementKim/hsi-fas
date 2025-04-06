@@ -98,28 +98,28 @@ def modify_image():
     }
 
     ## Load image files
-    video_and_exp_dir = [i for i in os.listdir("raw-dataset") if ("exp" in i and f"HSI{exp_dir[i]}" not in os.listdir("dataset")) or ("WIN" in i and f"RGB{rgb_dir[i[:-4]]}" not in os.listdir("dataset") or f"RGB{rgb_dir[i[:-4]]}-need-edit" not in os.listdir("dataset"))]
+    video_and_exp_dir = [i for i in os.listdir("raw-dataset") if ("exp" in i and f"HSI{exp_dir[i]}" not in os.listdir("dataset")) or (("WIN" in i) and (f"RGB{rgb_dir[i[:-4]]}" not in os.listdir("dataset") and f"RGB{rgb_dir[i[:-4]]}-need-clean" not in os.listdir("dataset")))]
 
     for item in tqdm(video_and_exp_dir):
         ## hsi image인 경우
         if "exp" in item:
-            for elem in tqdm(f"raw-dataset/{item}"):
+            for elem in tqdm(os.listdir(f"raw-dataset/{item}")):
                 ## 예외 처리: 해당 디렉토리 내 bmp 형식이 아닌 파일이 있는 경우
                 if elem[-3:] != "bmp":
                     continue
 
                 ## 이미지 파일 읽기
-                image = cv2.imread(f"raw-dataest/{item}/{elem}")
-
+                image = cv2.imread(f"raw-dataset/{item}/{elem}")
+            
                 ## 180도 회전
-                h, w, _ = image.shape
+                h, w = image.shape[:2]
                 cX, cY = w // 2, h // 2
                 M = cv2.getRotationMatrix2D((cX, cY), 180, 1.0)
                 image = cv2.warpAffine(image, M, (w, h))
 
                 ## 디렉토리 생성 및 이미지 저장
                 os.makedirs(f"dataset/HSI{exp_dir[item]}", exist_ok = True)
-                cv2.imwrite(f"dataset/HSI{exp_dir[item]}/{exp_dir[item]}HSI{elem[:-4]}.bmp")
+                cv2.imwrite(f"dataset/HSI{exp_dir[item]}/{exp_dir[item]}HSI{elem[:-4]}.bmp", image)
 
         ## rgb image인 경우
         elif "WIN" in item:
@@ -135,7 +135,7 @@ def modify_image():
             while success:
                 ## 6 frame 단위로 정제
                 if not (frame % 6):
-                    cv2.imwrite(f"dataset/RGB{rgb_dir[item[:-4]]}/{rgb_dir[item[:-4]]}RGB{frame // 6}.jpg", image)
+                    cv2.imwrite(f"dataset/RGB{rgb_dir[item[:-4]]}-need-clean/{rgb_dir[item[:-4]]}RGB{frame // 6}.jpg", image)
 
                 success, image = video.read()
                 frame += 1
@@ -172,13 +172,18 @@ def rgb_rename_crop_resize():
         cv2.imwrite(file_dir, ressized_image)
     
     ## dataset 디렉토리 중 정제된 RGB 이미지 디렉토리만 추출 및 정렬
-    directories = [i for i in os.listdir("dataset") if ("RGB" in i and "-need-edit" not in i)]
+    directories = [i for i in os.listdir("dataset") if ("RGB" in i and "-need-clean" not in i)]
     directories.sort()
 
+    ## exception handling: 정제한 RGB가 없는 경우
+    if not directories:
+        print("Nothing to do")
+        return
+    
     ## 디렉토리 내 이미지 파일 정렬, 자르기, 크기 조절, 이름 변경 수행
     for item in directories:
         ## 디렉토리 내 이미지 파일 정렬
-        frames = [i for i in os.listdir(f"dataset/{item}")]
+        frames = [i for i in os.listdir(f"dataset/{item}") if ".jpg" in i]
         sorted_frame = sorted(frames, key = file_number)
 
         item_number = int(item[-2:]) # 디렉토리로부터 숫자 추출
