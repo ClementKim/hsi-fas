@@ -1,4 +1,6 @@
 import os, re, json, cv2
+import numpy as np
+import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 
@@ -51,6 +53,12 @@ def modify_image():
         "exp38": "40",
         "exp39": "36",
         "exp40": "41",
+        "exp41": "43",
+        "exp42": "46",
+        "exp43": "45",
+        "exp44": "44",
+        "exp45": "42",
+        "exp46": "47",
     }
 
     rgb_dir = {
@@ -95,11 +103,19 @@ def modify_image():
         "WIN_20250404_16_32_56_Pro": "36",
         "WIN_20250404_16_41_45_Pro": "41",
         "WIN_20250404_16_43_39_Pro": "41",
+        "WIN_20250406_16_00_28_Pro": "43",
+        "WIN_20250406_16_10_06_Pro": "46",
+        "WIN_20250406_16_20_05_Pro": "45",
+        "WIN_20250406_16_32_43_Pro": "44",
+        "WIN_20250406_16_42_04_Pro": "42",
+        "WIN_20250407_17_31_51_Pro": "47",
     }
 
     ## Load image files
     video_and_exp_dir = [i for i in os.listdir("raw-dataset") if ("exp" in i and f"HSI{exp_dir[i]}" not in os.listdir("dataset")) or (("WIN" in i) and (f"RGB{rgb_dir[i[:-4]]}" not in os.listdir("dataset") and f"RGB{rgb_dir[i[:-4]]}-need-clean" not in os.listdir("dataset")))]
+    video_and_exp_dir.sort() ## only for RGB39 and RGB41, I don't know other case works either
 
+    done_item = []
     for item in tqdm(video_and_exp_dir):
         ## hsi image인 경우
         if "exp" in item:
@@ -126,12 +142,25 @@ def modify_image():
             ## 디렉토리 생성
             os.makedirs(f"dataset/RGB{rgb_dir[item[:-4]]}-need-clean", exist_ok = True)
 
+            ## 비디오 -> 이미지 변환
+            frame = 1
+
+            ## 이어지는 비디오 파일이 있는 경우 frame 조절
+            for i in done_item:
+                if rgb_dir[i[:-4]] == rgb_dir[item[:-4]]:
+                    video = cv2.VideoCapture(f"raw-dataset/{i}")
+                    success, image = video.read()
+
+                    while success:
+                        success, image = video.read()
+                        frame += 1
+                    video.release()
+                    break
+                            
             ## 비디오 파일 읽기
             video = cv2.VideoCapture(f"raw-dataset/{item}")
             success, image = video.read()
-
-            ## 비디오 -> 이미지 변환
-            frame = 1
+            
             while success:
                 ## 6 frame 단위로 정제
                 if not (frame % 6):
@@ -146,6 +175,8 @@ def modify_image():
         ## 예외 처리: 해당 디렉토리 내 bmp 또는 mp.4 형식이 아닌 파일이 있는 경우
         else:
             continue
+
+        done_item.append(item)
 
 def rgb_rename_crop_resize():
     '''
@@ -212,6 +243,10 @@ def rgb_rename_crop_resize():
                 file_order += 1
 
 def text_file_generate():
+    pass
+
+def hsi_template_matching():
+    hsi_dir = [i for i in os.listdir(f"dataset/hsi")]
     pass
 
 def main():
