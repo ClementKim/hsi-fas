@@ -2,7 +2,7 @@ import os, re, cv2
 
 import numpy as np
 import scipy.io as io
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 from itertools import product
@@ -247,6 +247,10 @@ def rgb_rename_crop_resize():
                 file_order += 1
 
 def template_matching(hsi_dir : list):
+    # def build_axes(ax_size, rows = 1, cols = 1):
+    #     fig, axes = plt.subplots(rows, cols, figsize = ax_size, contrained_layout = True, squeeze = False)
+    #     return fig, axes
+    
     def align_images(images, idx_ref, sz_window):
         def norm_sig(sig):
             return np.float32((sig - sig.min()) / (sig.max() - sig.min()))
@@ -282,34 +286,48 @@ def template_matching(hsi_dir : list):
 
         return imgs
     
-    for img in hsi_dir:
-        # Load image
-        raw_image = cv2.imread(f"dataset/hsi/{img}")
+    for img_dir in hsi_dir:
+        for img in os.listdir(f"dataset/hsi/{img_dir}"):
+            if ".bmp" not in img:
+                continue
 
-        # Height, Width, Channel
-        H, W = raw_image.shape[:2]
+            print(img)
 
-        cy, cx = int(H / 2), int( W / 2)
+            continue
 
-        sz_step = 390
-        lt = (cx - 3 * sz_step, cy - 3 * sz_step)
+            # Load image
+            raw_image = cv2.imread(f"dataset/hsi/{img_dir}/{img}")
 
-        anch_x = [lt[0] + sz_step * i for i in range(6)]
-        anch_y = [lt[1] + sz_step * i for i in range(6)]
-        anchors = [(x, y) for (y, x) in product(anch_y, anch_x)]
+            # Height, Width, Channel
+            H, W = raw_image.shape[:2]
 
-        image_cropped = []
-        for x, y in anchors:
-            image = raw_image[y : y + sz_step, x : x + sz_step, :]
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            image_cropped.append(image)
+            cy, cx = int(H / 2), int( W / 2)
 
-        img_aligned = align_images(image_cropped, 14, 50)
+            sz_step = 390
+            lt = (cx - 3 * sz_step, cy - 3 * sz_step)
 
-        sz_cube = 250
-        cube_meas_tm = np.stack(img_aligned).transpose(1, 2, 0)
+            image_ = raw_image.copy()
 
-        io.savemat(f"./dataset/mat/{img}-cube_meas_tm.mat", {"cube_meas_tm" : cube_meas_tm})
+            anch_x = [lt[0] + sz_step * i for i in range(6)]
+            anch_y = [lt[1] + sz_step * i for i in range(6)]
+            anchors = [(x, y) for (y, x) in product(anch_y, anch_x)]
+
+            for idx, (x, y) in enumerate(anchors, start = 1):
+                cv2.circle(image_, (x, y), radius = 5, thickness = -1, color = (0, 255, 0))
+                cv2.putText(image_, f"{idx}", (x, y), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 5)
+
+            image_cropped = []
+            for x, y in anchors:
+                image_ = raw_image[y : y + sz_step, x : x + sz_step, :]
+                image_ = cv2.cvtColor(image_, cv2.COLOR_BGR2GRAY)
+                image_cropped.append(image_)
+
+            img_aligned = align_images(image_cropped, 14, 50)
+
+            sz_cube = 250
+            cube_meas_tm = np.stack(img_aligned).transpose(1, 2, 0)
+
+            io.savemat(f"./dataset/hsi/{img_dir}/{img[:-4]}-cube_meas_tm.mat", {"cube_meas_tm" : cube_meas_tm})
 
 def mtcnn_landmark(img, boxes, points):
     # 박스 변환 및 너비 / 높이 계산
@@ -375,19 +393,20 @@ def image_to_cube(hsi_dir : list):
         cube = mtcnn_landmark(img, boxes, points)
 
         # Save cube as .mat file
-        io.savemat(f"./dataset/mat/{file[:-4]}.mat", {"cube_meas": cube})
+        io.savemat(f"./dataset/hsi/{file[:-4]}-cube_meas.mat", {"cube_meas": cube})
 
 def modality_analysis():
     data = {}
+    for subject_name in os.listdir("dataset/hsi"):
+        pass
 
 def main():
-    if len(os.listdir("dataset/hsi")) < 50 and len(os.listdir("dataset/rgb")) < 50:
-        modify_image()
-        rgb_rename_crop_resize()
+    # if len(os.listdir("dataset/hsi")) < 50 and len(os.listdir("dataset/rgb")) < 50:
+    #     modify_image()
+    #     rgb_rename_crop_resize()
 
-    os.makedirs(f"./dataset/mat", exist_ok=True)
-    hsi_dir = [i for i in os.listdir("dataset/hsi") if ".bmp" in i]
-
+    hsi_dir = [i for i in os.listdir("dataset/hsi") if "HSI" in i]
+    template_matching(hsi_dir)
 
     
 
