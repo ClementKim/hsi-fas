@@ -247,22 +247,69 @@ def rgb_rename_crop_resize():
                 file_order += 1
 
 def template_matching(hsi_dir : list):
+    def align_images(images, idx_ref, sz_window):
+        def norm_sig(sig):
+            return np.float32((sig - sig.min()) / (sig.max() - sig.min()))
+        
+        img_ref = images[idx_ref]
+
+        H, W = img_ref.shape
+        template = norm_sig(img_ref)[
+            (H // 2) - sz_window : (H // 2) + sz_window, (W // 2) - sz_window : (W // 2) + sz_window
+        ]
+
+        rt_mats = []
+        for idx, img in enumerate(images):
+            rt_mat = np.eye(3, 3)[:2]
+
+            if idx == idx_ref:
+                rt_mats.append(rt_mat)
+                continue
+
+            img_tgt = np.float32((img - img.min()) / (img.max() - img.min()))
+
+            cross_correlation = cv2.matchTemplate(img_tgt, template, method = cv2.TM_CCORR_NORMED)
+            _, max_val, _, max_loc = cv2.minMaxLoc(cross_correlation)
+
+            trans_x, trans_y = max_loc[0] + sz_window - W // 2, max_loc[1] + sz_window - H // 2
+            rt_mat[0, -1] = -trans_x
+            rt_mat[1, -1] = -trans_y
+            rt_mats.append(rt_mat)
+
+        imgs = []
+        for idx, (img, rt_mat) in enumerate(zip(images, rt_mats)):
+            imgs.append(cv2.warpAffine(img, rt_mat, (img.shape[1], img.shape[0])))
+
+        return imgs
+    
     for img in hsi_dir:
         # Load image
         raw_image = cv2.imread(f"dataset/hsi/{img}")
 
         # Height, Width, Channel
-        H, W, C = raw_image.shape
+        H, W = raw_image.shape[:2]
 
         cy, cx = int(H / 2), int( W / 2)
 
         sz_step = 390
         lt = (cx - 3 * sz_step, cy - 3 * sz_step)
 
-        anch_x = [lt[0] + sz_step * i fo ri in range(6)]
+        anch_x = [lt[0] + sz_step * i for i in range(6)]
         anch_y = [lt[1] + sz_step * i for i in range(6)]
         anchors = [(x, y) for (y, x) in product(anch_y, anch_x)]
-        pass
+
+        image_cropped = []
+        for x, y in anchors:
+            image = raw_image[y : y + sz_step, x : x + sz_step, :]
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            image_cropped.append(image)
+
+        img_aligned = align_images(image_cropped, 14, 50)
+
+        sz_cube = 250
+        cube_meas_tm = np.stack(img_aligned).transpose(1, 2, 0)
+
+        io.savemat(f"./dataset/mat/{img}-cube_meas_tm.mat", {"cube_meas_tm" : cube_meas_tm})
 
 def mtcnn_landmark(img, boxes, points):
     # 박스 변환 및 너비 / 높이 계산
@@ -328,7 +375,7 @@ def image_to_cube(hsi_dir : list):
         cube = mtcnn_landmark(img, boxes, points)
 
         # Save cube as .mat file
-        io.savemat(f"./dataset/mat/{".".join(*file.split(".")[:-1])}.mat", {"cube_meas": cube})
+        io.savemat(f"./dataset/mat/{file[:-4]}.mat", {"cube_meas": cube})
 
 def modality_analysis():
     data = {}
