@@ -1,8 +1,12 @@
 import os, re, json, cv2
+
 import numpy as np
+import scipy.io as io
 import matplotlib.pyplot as plt
 
 from tqdm import tqdm
+from itertools import product
+from facenet_pytorch import MTCNN
 
 def modify_image():
     '''
@@ -242,16 +246,103 @@ def rgb_rename_crop_resize():
                 image_crop_and_resize(f"dataset/{item}/{item_number}RGB{file_order}.jpg")
                 file_order += 1
 
-def text_file_generate():
-    pass
+def template_matching(hsi_dir : list):
+    for img in hsi_dir:
+        # Load image
+        raw_image = cv2.imread(f"dataset/hsi/{img}")
 
-def hsi_template_matching():
-    hsi_dir = [i for i in os.listdir(f"dataset/hsi")]
-    pass
+        # Height, Width, Channel
+        H, W, C = raw_image.shape
+
+        cy, cx = int(H / 2), int( W / 2)
+
+        sz_step = 390
+        lt = (cx - 3 * sz_step, cy - 3 * sz_step)
+
+        anch_x = [lt[0] + sz_step * i fo ri in range(6)]
+        anch_y = [lt[1] + sz_step * i for i in range(6)]
+        anchors = [(x, y) for (y, x) in product(anch_y, anch_x)]
+        pass
+
+def mtcnn_landmark(img, boxes, points):
+    # 박스 변환 및 너비 / 높이 계산
+    boxes_resz = boxes[0].astype(int)
+    boxes_resz[:, 2] = boxes_resz[:, 2] - boxes_resz[:, 0]
+    boxes_resz[:, 3] = boxes_resz[:, 3] - boxes_resz[:, 1]
+    width, height = np.mean(boxes_resz[:, 2]), np.mean(boxes_resz[:, 3])
+
+    # 랜드마크 좌표 처리
+    points_resz = points[0].astype(np.float32)
+    points_resz = sorted(points_resz, key=lambda pts: pts[0][1])
+    points_resz[0:6] = sorted(points_resz[0:6], key=lambda pts: pts[0][0])
+    points_resz[6:12] = sorted(points_resz[6:12], key=lambda pts: pts[0][0])
+    points_resz[12:18] = sorted(points_resz[12:18], key=lambda pts: pts[0][0])
+    points_resz[18:24] = sorted(points_resz[18:24], key=lambda pts: pts[0][0])
+    points_resz[24:30] = sorted(points_resz[24:30], key=lambda pts: pts[0][0])
+    points_resz[30:36] = sorted(points_resz[30:36], key=lambda pts: pts[0][0])
+    points_resz.reverse()
+
+    pts_zero = points_resz[0]
+    pts_zero_c = np.mean(pts_zero, axis=0)
+    left_top = np.array([pts_zero_c[0] - width / 2, pts_zero_c[1] - height / 2])
+
+    # crop and save
+    img_gray = cv2.cvtColor(img[0], cv2.COLOR_BGR2GRAY)
+    st = []
+    for i in range(len(points_resz)):
+
+        pts = points_resz[i]
+        pts_c = np.mean(pts, axis=0)
+        left_top_new = left_top + (pts_c - pts_zero_c)
+
+        box = np.array([*left_top_new, left_top_new[0] + width, left_top_new[1] + height], dtype=int)
+
+        img_gray_cropped = img_gray[max(0, box[1]) : max(0, box[3]), max(0, box[0]) : max(0, box[2])]
+        st.append(cv2.resize(img_gray_cropped, (128, 128)))
+
+    return np.stack(st).transpose(1, 2, 0)
+
+def image_to_cube(hsi_dir : list):
+    # post_process: 후처리를 하지 않고 원본 결과를 그대로 반환
+    # device: GPU 사용
+    mtcnn = MTCNN(post_process=False, device = "cuda:0")
+
+
+    for file in hsi_dir:
+        # Load image
+        img = cv2.imread(f"dataset/hsi/{file}")
+
+        # Height, Width, Channel
+        H, W, C = img.shape
+
+        # MTCNN은 (1, H, W, C) 형태의 이미지를 입력으로 받기 때문에 reshape
+        img = img.reshape(1, H, W, C)
+
+        # Detect faces
+        # boxes: 얼굴을 감싸는 박스 좌표
+        # probs: 얼굴 감지 확률
+        # points: 얼굴 랜드마크 좌표
+        boxes, probs, points = mtcnn.detect(img, landmarks=True)
+
+        # cube: 128x128x36 크기의 이미지 큐브
+        cube = mtcnn_landmark(img, boxes, points)
+
+        # Save cube as .mat file
+        io.savemat(f"./dataset/mat/{".".join(*file.split(".")[:-1])}.mat", {"cube_meas": cube})
+
+def modality_analysis():
+    data = {}
 
 def main():
-    modify_image()
-    rgb_rename_crop_resize()
+    if len(os.listdir("dataset/hsi")) < 50 and len(os.listdir("dataset/rgb")) < 50:
+        modify_image()
+        rgb_rename_crop_resize()
+
+    os.makedirs(f"./dataset/mat", exist_ok=True)
+    hsi_dir = [i for i in os.listdir("dataset/hsi") if ".bmp" in i]
+
+
+    
 
 if __name__ == "__main__":
     main()
