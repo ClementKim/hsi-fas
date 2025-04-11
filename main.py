@@ -1,4 +1,4 @@
-import os, re, json, cv2
+import os, re, cv2
 
 import numpy as np
 import scipy.io as io
