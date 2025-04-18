@@ -1,4 +1,4 @@
-import os, re, cv2
+import os, re, cv2, torch
 
 import numpy as np
 import scipy.io as io
@@ -63,6 +63,18 @@ def modify_image():
         "exp44": "44",
         "exp45": "42",
         "exp46": "47",
+        "exp47": "55",
+        "exp48": "53",
+        "exp49": "49",
+        "exp50": "52",
+        "exp51": "50",
+        "exp52": "48",
+        "exp53": "51",
+        "exp54": "54",
+        "exp55": "56",
+        "exp56": "3",
+        "exp57": "2",
+        "exp58": "1"
     }
 
     rgb_dir = {
@@ -113,6 +125,24 @@ def modify_image():
         "WIN_20250406_16_32_43_Pro": "44",
         "WIN_20250406_16_42_04_Pro": "42",
         "WIN_20250407_17_31_51_Pro": "47",
+        "WIN_20250412_14_09_42_Pro": "55",
+        "WIN_20250412_14_19_25_Pro": "53",
+        "WIN_20250412_14_30_34_Pro": "49",
+        "WIN_20250412_14_39_45_Pro": "52",
+        "WIN_20250412_15_25_37_Pro": "50",
+        "WIN_20250412_15_35_19_Pro": "48",
+        "WIN_20250412_15_44_27_Pro": "51",
+        "WIN_20250412_15_57_14_Pro": "54",
+        "WIN_20250412_16_06_01_Pro": "56",
+        "WIN_20250417_18_02_17_Pro": "3",
+        "WIN_20250417_18_03_16_Pro": "2",
+        "WIN_20250417_18_04_11_Pro": "1",
+        "WIN_20250417_18_05_11_Pro": "3",
+        "WIN_20250417_18_06_14_Pro": "2",
+        "WIN_20250417_18_07_15_Pro": "1",
+        "WIN_20250417_18_08_14_Pro": "1",
+        "WIN_20250417_18_09_06_Pro": "2",
+        "WIN_20250417_18_10_03_Pro": "3"
     }
 
     ## Load image files
@@ -148,7 +178,6 @@ def modify_image():
 
             ## 비디오 -> 이미지 변환
             frame = 1
-
             ## 이어지는 비디오 파일이 있는 경우 frame 조절
             for i in done_item:
                 if rgb_dir[i[:-4]] == rgb_dir[item[:-4]]:
@@ -216,21 +245,24 @@ def rgb_rename_crop_resize():
         return
     
     ## 디렉토리 내 이미지 파일 정렬, 자르기, 크기 조절, 이름 변경 수행
-    for item in directories:
+    for item in tqdm(directories):
+        if item == "RGB05":
+            continue
+
         ## 디렉토리 내 이미지 파일 정렬
         frames = [i for i in os.listdir(f"dataset/{item}") if ".jpg" in i]
         sorted_frame = sorted(frames, key = file_number)
 
         item_number = int(item[-2:]) # 디렉토리로부터 숫자 추출
         ## RGB3, RGB5 ~ RGB12, RGB15, RGB18은 형광등 -> LED 정면 -> LED 좌측 순으로 촬영됨
-        if (4 < item_number and item_number < 13 and item_number != 7) or item_number == 3 or item_number == 15 or item_number == 18:
+        if (5 < item_number and item_number < 13 and item_number != 7) or item_number == 3 or item_number == 15 or item_number == 18 or (item_number > 0 and item_number < 4):
             for idx, elem in enumerate(sorted_frame, start = 1):
                 os.rename(f"dataset/{item}/{elem}", f"dataset/{item}/{item_number}RGB{idx}.jpg") # 이름 변경
-                image_crop_and_resize(f"dataset/{item}/{item_number}RGB{idx}.jpg")
+                # image_crop_and_resize(f"dataset/{item}/{item_number}RGB{idx}.jpg")
 
 
         ## RGB7, RGB13~는 LED 좌측 -> LED 정면 -> 형광등 순으로 촬영됨
-        elif item_number == 7 or item_number > 12:
+        elif item_number == 7 or item_number > 12 or item_number == 4:
             file_order = 0
             for idx, elem in enumerate(sorted_frame, start = 1):
                 if (idx == 1):
@@ -243,7 +275,7 @@ def rgb_rename_crop_resize():
                     file_order = 1
 
                 os.rename(f"dataset/{item}/{elem}", f"dataset/{item}/{item_number}RGB{file_order}.jpg")
-                image_crop_and_resize(f"dataset/{item}/{item_number}RGB{file_order}.jpg")
+                # image_crop_and_resize(f"dataset/{item}/{item_number}RGB{file_order}.jpg")
                 file_order += 1
 
 def template_matching(hsi_dir : list):
@@ -290,10 +322,6 @@ def template_matching(hsi_dir : list):
         for img in os.listdir(f"dataset/hsi/{img_dir}"):
             if ".bmp" not in img:
                 continue
-
-            print(img)
-
-            continue
 
             # Load image
             raw_image = cv2.imread(f"dataset/hsi/{img_dir}/{img}")
@@ -400,14 +428,37 @@ def modality_analysis():
     for subject_name in os.listdir("dataset/hsi"):
         pass
 
+def image_crop_with_mtcnn():
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(f"Running on device: {device}")
+
+    mtcnn = MTCNN(
+        image_size = 256, margin = 0, min_face_size = 20,
+        thresholds = [0.6, 0.7, 0.7], factor = 0.709,
+        post_process = True, device = device
+    )
+
+    for directory in os.listdir("dataset/"):
+        if "RGB" not in directory:
+            continue
+
+        for file in os.listdir(f"dataset/{directory}"):
+            if ".jpg" not in file:
+                continue
+
+            image = cv2.imread(f"dataset/{directory}/{file}")
+
+            mtcnn(image, save_path = f"dataset/rgb/{file}")
+
 def main():
     # if len(os.listdir("dataset/hsi")) < 50 and len(os.listdir("dataset/rgb")) < 50:
-    #     modify_image()
-    #     rgb_rename_crop_resize()
+    # modify_image()
+    rgb_rename_crop_resize()
 
-    hsi_dir = [i for i in os.listdir("dataset/hsi") if "HSI" in i]
-    template_matching(hsi_dir)
+    # hsi_dir = [i for i in os.listdir("dataset/hsi") if "HSI" in i]
+    # template_matching(hsi_dir)
 
+    # image_crop_with_mtcnn()
     
 
 if __name__ == "__main__":
