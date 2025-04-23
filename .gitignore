@@ -3,5 +3,3 @@ dataset/*
 raw-dataset/*
 test_image/*
 .DS_Store
-original/
-preprocessing/*
