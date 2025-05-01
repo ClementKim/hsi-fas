@@ -1,5 +1,7 @@
 .venv/*
-dataset/*
-raw-dataset/*
 test_image/*
 .DS_Store
+
+preprocessing/face_crop/yolov8-face/**
+preprocessing/dataset/*
+preprocessing/raw-dataset/*

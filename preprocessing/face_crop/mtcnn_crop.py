@@ -4,9 +4,9 @@ import numpy as np
 from ultralytics import YOLO
 
 # 설정
-input_root = 'rgb'
-output_root = 'rgb_crop'
-model_path = 'yolov8n-face.pt'
+input_root = 'preprocessing/face_crop/image_to_crop'
+output_root = 'preprocessing/face_crop/output'
+model_path = 'preprocessing/face_crop/yolov8-face/yolov8n-face.pt'
 output_size = 256
 padding_ratio = 0.7  # 얼굴 주변 얼마나 여유 줄지
 
